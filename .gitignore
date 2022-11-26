@@ -1,0 +1,5 @@
+model/
+*.pkl
+data/
+.vscode/
+__pycache__/
