@@ -93,6 +93,27 @@ class Word2Sequence:
         return np.array(r, dtype=np.int64)
     
 ws = pickle.load(open("./model/ws.pkl", "rb"))#这是词表
+class TextCNN2(nn.Module):
+    def __init__(self):
+        super(TextCNN2,self).__init__()
+        self.kernel = [3,4,5]
+        self.embedding = nn.Embedding(num_embeddings=len(ws),embedding_dim=256)
+        self.convs = nn.ModuleList([nn.Conv2d(1,100,(k,256),padding =(2,0))
+                                    for k in self.kernel])
+        self.fc = nn.Linear(100*3,2)
+        self.dropout = nn.Dropout(p = 0.3)
+        self.softmax = nn.Softmax(dim = 1)
+    
+    def forward(self,x):
+        x = self.embedding(x)
+        x = x.unsqueeze(1)
+        x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
+        x = [F.max_pool1d(i,i.size(2)).squeeze(2) for i in x]
+        x = torch.cat(x,1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return self.softmax(x)
+    
 class TextCNN(nn.Module):
     def __init__(self) -> None:
         super(TextCNN,self).__init__()
@@ -120,8 +141,7 @@ class TextCNN(nn.Module):
         out = torch.cat(out,dim = 1)
         out = out.view(-1, out.size(1))
         out = self.fc(out)
-        #return F.log_softmax(out,dim = -1)
-        return out
+        return F.softmax(out,dim = 1)
 def collate_fn(batch):
     # 手动zip操作，并转换为list，否则无法获取文本和标签了
 
@@ -141,7 +161,7 @@ def get_dataloader(train=True):
     batch_size = train_batch_size if train else test_batch_size
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
 
-imdb_model = TextCNN()
+imdb_model = TextCNN2()
 # 优化器
 learning_rate = 0.1
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
@@ -181,7 +201,7 @@ def test():
     with torch.no_grad():
         for target, input in tqdm(test_dataloader):
             output = imdb_model(input)
-            test_loss += criterion(output, target, reduction="sum")
+            test_loss += criterion(output, target)
             pred = torch.max(output, dim=-1, keepdim=False)[-1]
             correct += pred.eq(target.data).sum()
         test_loss = test_loss / len(test_dataloader.dataset)
