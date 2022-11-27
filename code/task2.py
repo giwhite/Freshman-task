@@ -18,7 +18,7 @@ def tokenize(text):
         ,'\[','\\','\]','^','_','`','\{','\|','\}','~','\t','\n','\x97','\x96','”','“',]
     # sub方法是替换
     text = re.sub("<.*?>"," ",text,flags=re.S)	# 去掉<...>中间的内容，主要是文本内容中存在<br/>等内容
-    text = re.sub("|".join(fileters)," ",text,flags=re.S)	# 替换掉特殊字符，'|'是把所有要匹配的特殊字符连在一起
+    text = re.sub("|".join(fileters) , " " , text,flags=re.S)	# 替换掉特殊字符，'|'是把所有要匹配的特殊字符连在一起
     return [i.strip() for i in text.split()]	# 去掉前后多余的空格
 
 def read_imdb(path='./data/aclImdb', is_train=True):
@@ -131,7 +131,7 @@ class TextCNN(nn.Module):
                 nn.MaxPool1d(kernel_size=self.max_len-h+1)
             )
             for h in self.windows_size
-        ])
+        ])#尽量不要使用
         self.fc = nn.Linear(self.feature_size*len(self.windows_size),2)
         #使用的每个channel都是1，但是有好几个不同维度的kernelsize
     def forward(self, x):
@@ -141,7 +141,7 @@ class TextCNN(nn.Module):
         out = torch.cat(out,dim = 1)
         out = out.view(-1, out.size(1))
         out = self.fc(out)
-        return F.softmax(out,dim = 1)
+        return out
 def collate_fn(batch):
     # 手动zip操作，并转换为list，否则无法获取文本和标签了
 
@@ -163,7 +163,7 @@ def get_dataloader(train=True):
 
 imdb_model = TextCNN2()
 # 优化器
-learning_rate = 0.1
+learning_rate = 0.001
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
 
 # 交叉熵损失
