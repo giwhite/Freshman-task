@@ -104,9 +104,9 @@ class TextRNN(nn.Module):
         self.fc = nn.Linear(self.hidden_dim,self.out_dim)
     
     def forward(self,x):
-        embed_x = self.embedding(x)
+        embed_x = self.embedding(x.T)
         #the shape of embed_x is [260,64,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
-        out,h = self.rnn(embed_x.T)
+        out,h = self.rnn(embed_x)
         #the shape of out is [260,64,100],which equals to [max_len,batch_size,hidden_dim]
         #the shape of h is [1,64, 100],which  equals to [1,batch_size,hidden_len]
         
