@@ -93,26 +93,28 @@ class Word2Sequence:
         return np.array(r, dtype=np.int64)
     
 ws = pickle.load(open("./model/ws.pkl", "rb"))#这是词表
-class TextCNN2(nn.Module):
-    def __init__(self):
-        super(TextCNN2,self).__init__()
-        self.kernel = [3,4,5]
-        self.embedding = nn.Embedding(num_embeddings=len(ws),embedding_dim=256)
-        self.convs = nn.ModuleList([nn.Conv2d(1,100,(k,256),padding =(2,0))
-                                    for k in self.kernel])
-        self.fc = nn.Linear(100*3,2)
-        self.dropout = nn.Dropout(p = 0.3)
-        self.softmax = nn.Softmax(dim = 1)
+class TextRNN(nn.Module):
+    def __init__(self) -> None:
+        super(TextRNN,self).__init__()
+        self.embedding_size = 256
+        self.hidden_dim = 100
+        self.out_dim = 2
+        self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
+        self.rnn = nn.RNN(self.embedding_size,self.hidden_dim)
+        self.fc = nn.Linear(self.hidden_dim,self.out_dim)
     
     def forward(self,x):
-        x = self.embedding(x)
-        x = x.unsqueeze(1)
-        x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
-        x = [F.max_pool1d(i,i.size(2)).squeeze(2) for i in x]
-        x = torch.cat(x,1)
-        x = self.dropout(x)
-        x = self.fc(x)
-        return self.softmax(x)
+        embed_x = self.embedding(x)
+        #the shape of embed_x is [260,64,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
+        out,h = self.rnn(embed_x.T)
+        #the shape of out is [260,64,100],which equals to [max_len,batch_size,hidden_dim]
+        #the shape of h is [1,64, 100],which  equals to [1,batch_size,hidden_len]
+        
+        #这个地方是确定以下最后一层的数据和记录了每一层数据的out的最新的那层是不是一样的
+        assert torch.equal(out[-1, :, ], h.squeeze(0))
+        return F.softmax(self.fc(h.squeeze(0)),dim = -1)
+
+
     
 class TextCNN(nn.Module):
     def __init__(self) -> None:
@@ -161,9 +163,9 @@ def get_dataloader(train=True):
     batch_size = train_batch_size if train else test_batch_size
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
 
-imdb_model = TextCNN2()
+imdb_model = TextRNN()
 # 优化器
-learning_rate = 0.001
+learning_rate = 0.0001
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
 
 # 交叉熵损失
