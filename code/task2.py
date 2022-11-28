@@ -11,7 +11,7 @@ from torch import optim
 #超参数
 train_batch_size = 64
 test_batch_size = 512
-max_len = 260
+max_len = 240
 def tokenize(text):
     # fileters = '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'
     fileters = ['"','#','$','%','&','\(','\)','\*','\+',',','-','\.','/',':',';','<','=','>','@'
@@ -97,7 +97,7 @@ class TextRNN(nn.Module):
     def __init__(self) -> None:
         super(TextRNN,self).__init__()
         self.embedding_size = 256
-        self.hidden_dim = 100
+        self.hidden_dim = 50
         self.out_dim = 2
         self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
         self.rnn = nn.RNN(self.embedding_size,self.hidden_dim)
