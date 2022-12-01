@@ -11,7 +11,7 @@ from torch import optim
 #超参数
 train_batch_size = 64
 test_batch_size = 512
-max_len = 240
+max_len = 260
 def tokenize(text):
     # fileters = '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'
     fileters = ['"','#','$','%','&','\(','\)','\*','\+',',','-','\.','/',':',';','<','=','>','@'
@@ -97,22 +97,58 @@ class TextRNN(nn.Module):
     def __init__(self) -> None:
         super(TextRNN,self).__init__()
         self.embedding_size = 256
-        self.hidden_dim = 50
+        self.hidden_dim = 100
         self.out_dim = 2
-        self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
+        
+        self.embedding = nn.Embedding(len(ws),self.embedding_size)
         self.rnn = nn.RNN(self.embedding_size,self.hidden_dim)
-        self.fc = nn.Linear(self.hidden_dim,self.out_dim)
-    
+        self.fc1 = nn.Linear(self.hidden_dim*2,self.out_dim)
+
     def forward(self,x):
         embed_x = self.embedding(x.T)
         #the shape of embed_x is [260,64,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
+
         out,h = self.rnn(embed_x)
         #the shape of out is [260,64,100],which equals to [max_len,batch_size,hidden_dim]
         #the shape of h is [1,64, 100],which  equals to [1,batch_size,hidden_len]
         
         #这个地方是确定以下最后一层的数据和记录了每一层数据的out的最新的那层是不是一样的
-        assert torch.equal(out[-1, :, ], h.squeeze(0))
-        return F.softmax(self.fc(h.squeeze(0)),dim = -1)
+        output = torch.cat([h[1, :, :], h[0, :, :]], dim=-1)
+        output = self.fc1(output)
+        return F.softmax(output,dim=-1)
+
+class TextLstm(nn.Module):
+    def __init__(self):
+        super(TextLstm, self).__init__()
+        self.hidden_dim = 100
+        self.embedding_dim = 200
+        self.num_layer = 2
+        self.bidirectional = True
+        self.bi_num = 2 if self.bidirectional else 1
+        self.dropout = 0.5
+        # 以上部分为超参数，可以自行修改
+        self.embedding = nn.Embedding(len(ws), self.embedding_dim, padding_idx=ws.PAD)
+        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim,
+                            self.num_layer, bidirectional=True, dropout=self.dropout) 
+        self.fc = nn.Linear(self.hidden_dim * self.bi_num, 20)
+        self.fc2 = nn.Linear(20, 2)
+ 
+    def forward(self, x):
+        x = self.embedding(x)
+        x = x.permute(1, 0, 2)  # 进行轴交换
+        h_0, c_0 = self.init_hidden_state(x.size(1))
+        _, (h_n, c_n) = self.lstm(x, (h_0, c_0))
+        # 只要最后一个lstm单元处理的结果，取前向LSTM和后向LSTM的结果进行简单拼接
+        out = torch.cat([h_n[-2, :, :], h_n[-1, :, :]], dim=-1)
+        out = self.fc(out)
+        out = F.relu(out)
+        out = self.fc2(out)
+        return F.log_softmax(out, dim=-1)
+ 
+    def init_hidden_state(self, batch_size):
+        h_0 = torch.rand(self.num_layer * self.bi_num, batch_size, self.hidden_dim)
+        c_0 = torch.rand(self.num_layer * self.bi_num, batch_size, self.hidden_dim)
+        return h_0, c_0
 
 
     
@@ -165,8 +201,9 @@ def get_dataloader(train=True):
 
 imdb_model = TextRNN()
 # 优化器
-learning_rate = 0.0001
+learning_rate = 0.00001
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
+
 
 # 交叉熵损失
 criterion = nn.CrossEntropyLoss()
@@ -185,6 +222,7 @@ def train(epoch):
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
+
         step +=1
         #if step % 10 == 0:
         #    print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
