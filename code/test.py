@@ -1,14 +1,9 @@
-import torch.nn as nn
-import torch
-import torch.nn.functional as F
-batch_size = 64
-vec_dim = 256
-hidden_dim = 100
-y = torch.rand(size=[260,64,vec_dim])
-f= nn.RNN(vec_dim,hidden_dim)
-out,h = f(y)
-#squeeze()只会压缩维度为1时的tensor，如果这个维度上的shape不是1，那就不会压缩
-lin = nn.Linear(hidden_dim,2)
-o = lin(h)
-o.squeeze(0)
-print(y)
+import torch 
+#ls = torch.tensor([[[4,3,2]]])
+# tensor_0 = torch.arange(1, 61).view(4,3,-1)
+# print(ls)
+# index = torch.tensor([[[1,2,2]],[[2, 1, 0]]])
+# tensor_1 = tensor_0.gather(1, index)
+# print(tensor_1)
+ls = [2,2,3,5]
+print([ls[0]]*10)

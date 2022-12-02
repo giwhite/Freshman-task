@@ -45,6 +45,9 @@ class myDataset(Dataset):
         label = self.labels[index]
         review = self.reviews[index]
         return review,label
+
+ls = []
+
 class Word2Sequence:
     UNK_TAG = "UNK"
     PAD_TAG = "PAD"
@@ -88,6 +91,9 @@ class Word2Sequence:
             r = [self.PAD] * len(sentence)
         if max_len is not None and len(sentence) > max_len:
             sentence = sentence[:max_len]
+            ls.append(max_len-1)
+        else:
+            ls.append(len(sentence)-1)
         for index, word in enumerate(sentence):
             r[index] = self.to_index(word)
         return np.array(r, dtype=np.int64)
@@ -100,22 +106,25 @@ class TextRNN(nn.Module):
         self.hidden_dim = 100
         self.out_dim = 2
         
-        self.embedding = nn.Embedding(len(ws),self.embedding_size)
-        self.rnn = nn.RNN(self.embedding_size,self.hidden_dim)
-        self.fc1 = nn.Linear(self.hidden_dim*2,self.out_dim)
+        self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
+        self.rnn = nn.RNN(self.embedding_size,self.hidden_dim,batch_first=True)
+        self.fc1 = nn.Linear(self.hidden_dim,self.out_dim)
 
-    def forward(self,x):
-        embed_x = self.embedding(x.T)
-        #the shape of embed_x is [260,64,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
-
+    def forward(self,x,num):#这里还要传入字长
+        embed_x = self.embedding(x)
+        #the shape of embed_x is [64,260,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
+        idx = num*train_batch_size
+        sli = torch.tensor([[[ls[i+idx]]*100]for i in range(x.size(0))])
         out,h = self.rnn(embed_x)
-        #the shape of out is [260,64,100],which equals to [max_len,batch_size,hidden_dim]
-        #the shape of h is [1,64, 100],which  equals to [1,batch_size,hidden_len]
-        
+        #the shape of out is [64,260,100],which equals to [max_len,batch_size,hidden_dim]
+        #the shape of h is [64,1, 100],which  equals to [1,batch_size,hidden_len]
+        output = out.gather(1,sli)
         #这个地方是确定以下最后一层的数据和记录了每一层数据的out的最新的那层是不是一样的
-        output = torch.cat([h[1, :, :], h[0, :, :]], dim=-1)
+        
         output = self.fc1(output)
-        return F.softmax(output,dim=-1)
+        
+        
+        return F.softmax(output.squeeze(1),dim=-1)
 
 class TextLstm(nn.Module):
     def __init__(self):
@@ -201,7 +210,7 @@ def get_dataloader(train=True):
 
 imdb_model = TextRNN()
 # 优化器
-learning_rate = 0.00001
+learning_rate = 0.0001
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
 
 
@@ -217,7 +226,7 @@ def train(epoch):
     for target, input in pbar:
         optimizer.zero_grad()
         #imdb_model.train()
-        output = imdb_model(input)
+        output = imdb_model(input)#这里传入的num出问题了
         #loss = F.nll_loss(output, target)
         loss = criterion(output, target)
         loss.backward()
@@ -240,7 +249,7 @@ def test():
     test_dataloader = get_dataloader(mode)
     with torch.no_grad():
         for target, input in tqdm(test_dataloader):
-            output = imdb_model(input)
+            output = imdb_model(input)#出问题了
             test_loss += criterion(output, target)
             pred = torch.max(output, dim=-1, keepdim=False)[-1]
             correct += pred.eq(target.data).sum()
