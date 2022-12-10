@@ -11,7 +11,8 @@ from torch import optim
 #超参数
 train_batch_size = 64
 test_batch_size = 512
-max_len = 260
+max_len = 300
+max_epoch = 15
 def tokenize(text):
     # fileters = '!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'
     fileters = ['"','#','$','%','&','\(','\)','\*','\+',',','-','\.','/',':',';','<','=','>','@'
@@ -105,15 +106,18 @@ class TextRNN(nn.Module):
         self.embedding_size = 256
         self.hidden_dim = 100
         self.out_dim = 2
-        
+        self.layernum = 2
         self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
-        self.rnn = nn.RNN(self.embedding_size,self.hidden_dim,batch_first=True)
+        self.rnn = nn.RNN(self.embedding_size,self.hidden_dim,num_layers = self.layernum,dropout = 0.3, batch_first=True)
         self.fc1 = nn.Linear(self.hidden_dim,self.out_dim)
 
-    def forward(self,x,num):#这里还要传入字长
+    def forward(self,x,num,mode):#这里还要传入字长
         embed_x = self.embedding(x)
         #the shape of embed_x is [64,260,256],which equals to [max_sentence_len,batch_size,vec_dim_per_word]
-        idx = num*train_batch_size
+        if mode:
+            idx = num*train_batch_size
+        else:
+            idx = num*test_batch_size
         sli = torch.tensor([[[ls[i+idx]]*100]for i in range(x.size(0))])
         out,h = self.rnn(embed_x)
         #the shape of out is [64,260,100],which equals to [max_len,batch_size,hidden_dim]
@@ -210,23 +214,25 @@ def get_dataloader(train=True):
 
 imdb_model = TextRNN()
 # 优化器
-learning_rate = 0.0001
+learning_rate = 0.01
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
-
+scheduler =  torch.optim.lr_scheduler.CosineAnnealingLR(optimizer = optimizer,
+                                                        T_max =  max_epoch)
 
 # 交叉熵损失
 criterion = nn.CrossEntropyLoss()
 
 def train(epoch):
     mode = True
-
+    
     train_dataloader = get_dataloader(mode)
     step = 0
     pbar = tqdm(train_dataloader,desc='epoch:{}'.format(epoch))
     for target, input in pbar:
         optimizer.zero_grad()
         #imdb_model.train()
-        output = imdb_model(input)#这里传入的num出问题了
+
+        output = imdb_model(input,step,mode)#这里传入的num出问题了
         #loss = F.nll_loss(output, target)
         loss = criterion(output, target)
         loss.backward()
@@ -238,7 +244,8 @@ def train(epoch):
         #        epoch, step * len(input), len(train_dataloader.dataset),
         #               100. * step / len(train_dataloader), loss.item()))
         pbar.set_postfix({"loss": loss.item()})
-         
+    scheduler.step()
+    ls.clear()
  
  
 def test():
@@ -247,22 +254,28 @@ def test():
     mode = False
     imdb_model.eval()
     test_dataloader = get_dataloader(mode)
+    test_step = 0
     with torch.no_grad():
         for target, input in tqdm(test_dataloader):
-            output = imdb_model(input)#出问题了
+            output = imdb_model(input,test_step,mode)
+
             test_loss += criterion(output, target)
             pred = torch.max(output, dim=-1, keepdim=False)[-1]
             correct += pred.eq(target.data).sum()
+            test_step += 1
+
         test_loss = test_loss / len(test_dataloader.dataset)
         print('\nTest set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
             test_loss, correct, len(test_dataloader.dataset),
             100. * correct / len(test_dataloader.dataset)))
+    ls.clear()
+    
        
 
 if __name__ == '__main__':
 
     #test()
-    for i in range(20):
+    for i in range(max_epoch):
         train(i)
         print(
             "训练第{}轮的测试结果-----------------------------------------------------------------------------------------".format(
