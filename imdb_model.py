@@ -17,13 +17,14 @@ voc_model = pickle.load(open("./models/vocab1.pkl", "rb"))
 sequence_max_len = 300
 Vocab()
 writer = SummaryWriter('./log')
-epochs = 50
+epochs = 20
 learning_rate = 0.001
 train_batch_size = 128
 test_batch_size = 128
 loss_fn = nn.CrossEntropyLoss()
 filter_num = 200
 embedding_dim = 300
+hid_size = 300
 kernel_sizes = [2, 3, 4]
 
 
@@ -86,9 +87,35 @@ class TextCNN(nn.Module):
         return self.softmax(x)
 
 
+class Rnn(nn.Module):
+    def __init__(self):
+        super(Rnn, self).__init__()
+        self.embedding = nn.Embedding(num_embeddings=len(voc_model), embedding_dim=embedding_dim)
+        self.RNN = nn.RNN(embedding_dim, hid_size, num_layers=1, batch_first=True)
+        self.dropout = nn.Dropout(p=0.3)
+        self.fc = nn.Sequential(
+            nn.Linear(hid_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, 2)
+        )
+
+    def forward(self, x):
+        x = self.embedding(x)  # (128, 300, 300)
+        output, h_n = self.RNN(x)
+        output = output[:, :, -1]
+        out = self.dropout(output)
+        out = self.fc(out)
+        return out
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = TextCNN().to(device)
-imdb_model = TextCNN().to(device)
+model = input("请选择模型(1:RNN/2:TextCNN/3:Linear):")
+if model == "1":
+    imdb_model = Rnn().to(device)
+elif model == "2":
+    imdb_model = TextCNN().to(device)
+else:
+    imdb_model = ImdbModel().to(device)
 optimizer = torch.optim.Adam(imdb_model.parameters(), lr=learning_rate)
 # scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.2)
 scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
@@ -96,6 +123,7 @@ scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
 
 def train(imdb_model, epoch):
     global j
+    imdb_model.train()
     train_dataloader = get_dataloader(train=True)
     bar = tqdm(train_dataloader, total=len(train_dataloader))
     for idx, (data, target) in enumerate(bar):
