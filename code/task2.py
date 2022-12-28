@@ -86,6 +86,19 @@ class Word2Sequence:
         for word in self.count:
             self.dict[word] = len(self.dict)
     
+    # def transform(self, sentence, max_len=None):
+    #     if max_len is not None:
+    #         r = [self.PAD] * max_len
+    #     else:
+    #         r = [self.PAD] * len(sentence)
+    #     if max_len is not None and len(sentence) > max_len:
+    #         sentence = sentence[:max_len]
+    #         ls.append(max_len-1)
+    #     else:
+    #         ls.append(len(sentence)-1)#这里-1是为了后面的gather做准备
+    #     for index, word in enumerate(sentence):
+    #         r[index] = self.to_index(word)
+    #     return np.array(r, dtype=np.int64)
     def transform(self, sentence, max_len=None):
         if max_len is not None:
             r = [self.PAD] * max_len
@@ -93,12 +106,15 @@ class Word2Sequence:
             r = [self.PAD] * len(sentence)
         if max_len is not None and len(sentence) > max_len:
             sentence = sentence[:max_len]
-            ls.append(max_len-1)
+            ls.append(max_len)
         else:
+
             ls.append(len(sentence)-1)#这里-1是为了后面的gather做准备
+
         for index, word in enumerate(sentence):
             r[index] = self.to_index(word)
-        return np.array(r, dtype=np.int64)
+        r2 = r[:len(sentence)]
+        return np.array(r2, dtype=np.int64)
     
 ws = pickle.load(open("./model/ws.pkl", "rb"))#这是词表
 class TextRNN(nn.Module):
@@ -111,6 +127,7 @@ class TextRNN(nn.Module):
         self.state = None
         self.embedding = nn.Embedding(len(ws),self.embedding_size,padding_idx=ws.PAD)
         self.rnn = nn.RNN(self.embedding_size,self.hidden_dim,num_layers = self.layernum,dropout = 0.3, batch_first=True)
+
         self.gru = nn.GRU(self.embedding_size, self.hidden_dim,batch_first=True)
         self.fc1 = nn.Linear(self.hidden_dim,self.out_dim)
     def forward(self,x,num,mode):#这里还要传入字长
@@ -127,6 +144,7 @@ class TextRNN(nn.Module):
         #the shape of h is [64,1, 100],which  equals to [1,batch_size,hidden_len]
         output = out.gather(1,sli)
         #这个地方是确定以下最后一层的数据和记录了每一层数据的out的最新的那层是不是一样的
+
         output = self.fc1(output)
         
         
@@ -197,7 +215,6 @@ class TextCNN(nn.Module):
         return out
 
 
-
 def collate_fn(batch):
     # 手动zip操作，并转换为list，否则无法获取文本和标签了
     batch = list(zip(*batch))
@@ -206,10 +223,12 @@ def collate_fn(batch):
     texts = [ws.transform(i, max_len) for i in texts]
     texts = sorted(texts, key = lambda tp: len(tp), reverse=True)
 
+
     texts = torch.tensor(np.array([ws.transform(i, max_len) for i in texts]))
     del batch
 
     # 注意这里long()不可少，否则会报错
+
 
     return labels.long(), texts.long()
 
@@ -243,7 +262,7 @@ def train(epoch):
         optimizer.zero_grad()
         #imdb_model.train()
 
-        output = imdb_model(input,step,mode)#这里传入的num出问题了
+        output = imdb_model(input)#,step,mode)#这里传入的num出问题了
         #loss = F.nll_loss(output, target)
         loss = criterion(output, target)
         loss.backward()
@@ -272,7 +291,9 @@ def test():
     with torch.no_grad():
         for target, input in tqdm(test_dataloader):
             
+
             output = imdb_model(input,test_step,mode)
+
             test_loss += criterion(output, target)
             pred = torch.max(output, dim=-1, keepdim=False)[-1]
             correct += pred.eq(target.data).sum()
