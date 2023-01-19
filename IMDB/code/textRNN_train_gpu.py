@@ -27,7 +27,7 @@ def tokenize(text):
     text = re.sub("|".join(fileters) , " " , text,flags=re.S)	# 替换掉特殊字符，'|'是把所有要匹配的特殊字符连在一起
     return [i.strip() for i in text.split()]	# 去掉前后多余的空格
 
-def read_imdb(path='./data/aclImdb', is_train=True):
+def read_imdb(path='../data/aclImdb', is_train=True):
     reviews, labels = [], []
     for label in ['pos', 'neg']:
         folder_name = os.path.join(path, 'train' if is_train else 'test', label)
@@ -104,7 +104,7 @@ class Word2Sequence:
         r2 = r[:len(sentence)]
         return np.array(r2, dtype=np.int64)
     
-ws = pickle.load(open("./model/ws.pkl", "rb"))#这是词表
+ws = pickle.load(open("../model/ws.pkl", "rb"))#这是词表
 class TextRNN(nn.Module):
     def __init__(self) -> None:
         super(TextRNN,self).__init__()
@@ -176,29 +176,30 @@ def get_dataloader(train=True):
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
 
 imdb_model = TextRNN()
-imdb_model.to(device)
+imdb_model = imdb_model.to(device)
 # 优化器
-learning_rate = 0.01
+learning_rate = 0.00001
 optimizer = optim.Adam(imdb_model.parameters(),lr=learning_rate)
 scheduler =  torch.optim.lr_scheduler.CosineAnnealingLR(optimizer = optimizer,
                                                         T_max =  max_epoch)
 
 # 交叉熵损失
 criterion = nn.CrossEntropyLoss()
-criterion.to(device)
+criterion = criterion.to(device)
 def train(epoch):
     mode = True
-
+    imdb_model.train()
     train_dataloader = get_dataloader(mode)
     step = 0
     pbar = tqdm(train_dataloader,desc='epoch:{}'.format(epoch))
-    for target, input in pbar:
+    for target, input_text in pbar:
 
         optimizer.zero_grad()
         #imdb_model.train()
-        target.to(device)
-        input.to(device)
-        output = imdb_model(input)#,step,mode)#这里传入的num出问题了
+        target = target.to(device)
+    
+        input_text = input_text.to(device)
+        output = imdb_model(input_text)#,step,mode)#这里传入的num出问题了
         #loss = F.nll_loss(output, target)
         loss = criterion(output, target)
         loss.backward()
@@ -225,10 +226,10 @@ def test():
     test_dataloader = get_dataloader(mode)
     test_step = 0
     with torch.no_grad():
-        for target, input in tqdm(test_dataloader):
-            target.to(device)
-            input.to(device)
-            output = imdb_model(input)#,test_step,mode)
+        for target, input_texts in tqdm(test_dataloader):
+            target = target.to(device)
+            input_texts = input_texts.to(device)
+            output = imdb_model(input_texts)#,test_step,mode)
             test_loss += criterion(output, target)
             pred = torch.max(output, dim=-1, keepdim=False)[-1]
             correct += pred.eq(target.data).sum()

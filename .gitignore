@@ -1,5 +1,9 @@
-model/
+IMDB/model/
+IMDB/data/
 *.pkl
-data/
+MyjointBert/fuss/
+MyjointBert/bert-base-uncased/
+MyjointBert/data/atis/
+MyjointBert/data/snips/
 .vscode/
 __pycache__/
