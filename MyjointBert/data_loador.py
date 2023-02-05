@@ -1,7 +1,7 @@
 '''
 就是要准备bert输入模型的五个参数
 其中3个放在Bert模型中，身下的几个放在后面使用
-阿里云http://mirrors.aliyun.com/pypi/simple/
+阿里云https://mirrors.aliyun.com/pypi/simple/
 input_ids = tokenizer.convert_tokens_to_ids(tokens)
 '''
 from utils import getlabels,tokenizer
@@ -18,7 +18,7 @@ class processor(object):
         self.intent_labels_file = 'label'
         self.slot_labels_file = 'seq.out'
 
-    def data_processing(self,mode):
+    def data_processing(self,mode,pad_token_label_id=-100):
 
         '''
         mode: train, eval, test
@@ -27,7 +27,7 @@ class processor(object):
         #注意一定要处理数据中的不存在的地方，以为后面进行eval和test的时候可能会有没有发现的数据，在这里的处理的时候需要
         #考虑
         #pad_slot_id = 0#这个放在slot填充
-        pad_token_label_id=-100
+        
         cls_token_segment_id=0
         pad_token_segment_id=0
         sequence_a_segment_id=0
@@ -137,13 +137,13 @@ def load_and_save_data(args,mode):
                     args.task,
                     mode,
                     args.max_seq_len,
-                    'e'
+                    'D'
                 )
     save_to_file_name = os.path.join('./','data',args.task,file_name)
     if os.path.exists(save_to_file_name):
         dataset = torch.load(save_to_file_name)
     else:
-        rawdata = data_processor.data_processing(mode)
+        rawdata = data_processor.data_processing(mode,args.ignore_index)
         dataset = data_processor.get_dataset(rawdata)
         torch.save(dataset,save_to_file_name)
     return dataset

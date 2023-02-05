@@ -19,8 +19,7 @@ class JointBert(BertPreTrainedModel):
                             nn.Dropout(args.dropout_rate),
                             nn.Linear(config.hidden_size, self.num_intent_labels)
                         )
-        if self.args.use_crf:
-            self.crf = CRF(num_tags=self.num_slot_labels, batch_first=True)
+
     
     def forward(self,input_ids,attention_mask,token_type_id):
         outputs = self.bert(input_ids=input_ids,attention_mask=attention_mask,token_type_ids=token_type_id)

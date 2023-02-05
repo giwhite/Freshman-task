@@ -5,35 +5,14 @@ from data_loador import *
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from utils import getlabels
+from trainer import trainer
 
 
-def train(args,model):
-    model.train()
-    train_dataset = load_and_save_data(args,'train')
-    train_dataloador = DataLoader(dataset=train_dataset,batch_size=args.train_batch_size,shuffle=True)
-    pbar = tqdm(train_dataloador,desc="Iteration")
-    for step,batch in enumerate(pbar):
-        inputs = {
-            'input_ids':batch[0],
-            'attention_mask': batch[1],
-            'token_type_id':batch[2]
-        }
-        intent_logit,slot_logit = model(**inputs)
-        print('x')
-
-def evaluate(args,model):
-    model.eval()
 
 def main(args):
-    config = BertConfig.from_pretrained(args.model_name_or_path, finetuning_task=args.task)
-    intent_labels = getlabels(args.task,'intent')
-    slot_labels = getlabels(args.task,'slot')
-    model = JointBert.from_pretrained(args.model_name_or_path,
-                                    config=config,
-                                    args=args,
-                                    intent_labels_list=intent_labels,
-                                    slot_labels_list=slot_labels)
-    train(args,model)
+    train = trainer(args)
+    train.evaluate('dev')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -57,7 +36,7 @@ if __name__ == "__main__":
                         help="Number of updates steps to accumulate before performing a backward/update pass.")
     parser.add_argument("--adam_epsilon", default=1e-8, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help="Max gradient norm.")
-    parser.add_argument("--max_steps", default=-1, type=int, help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
+    #parser.add_argument("--max_steps", default=-1, type=int, help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
     parser.add_argument("--warmup_steps", default=0, type=int, help="Linear warmup over warmup_steps.")
     parser.add_argument("--dropout_rate", default=0.1, type=float, help="Dropout for fully-connected layers")
 
