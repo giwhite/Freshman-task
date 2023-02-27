@@ -72,7 +72,7 @@ class trainer(object):
         #     self.args.num_train_epochs = self.args.max_steps // (len(train_dataloader) // self.args.gradient_accumulation_steps) + 1
         # else :
         #这里可以不用上面那个东西，因为我们epoch的数量是给定的
-        t_batchs = len(train_dataloader)//self.args.gradient_accumulation_steps * self.args.train_batch_size#需要看回传的
+        t_batchs = len(train_dataloader)//self.args.gradient_accumulation_steps * self.args.num_train_epochs#需要看回传的
 
         self.model.zero_grad()#清一次梯度
         gb_step = 0
