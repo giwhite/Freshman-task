@@ -7,9 +7,9 @@ def sequence_mask(X, valid_len, value=0):
     """Mask irrelevant entries in sequences.
 
     Defined in :numref:`sec_seq2seq_decoder`"""
-    maxlen = X.size(1)
+    maxlen = X.size(1)#x到这里展成2维的[batch*headers*maxlen,键值对]
     mask = torch.arange((maxlen), dtype=torch.float32,
-                        device=X.device)[None, :] < valid_len[:, None]
+                        device=X.device)[None, :] < valid_len[:, None]#这相当于在键值对上确定有效长度
     X[~mask] = value
     return X
 def masked_softmax(X, valid_lens):
@@ -22,14 +22,14 @@ def masked_softmax(X, valid_lens):
     else:
         shape = X.shape
         if valid_lens.dim() == 1:
-            valid_lens = torch.repeat_interleave(valid_lens, shape[1])
+            valid_lens = torch.repeat_interleave(valid_lens, shape[1])#这里重复了maxlen个batch*headers*maxlen
         else:
             valid_lens = valid_lens.reshape(-1)
         # On the last axis, replace masked elements with a very large negative
         # value, whose exponentiation outputs 0
         X = sequence_mask(X.reshape(-1, shape[-1]), valid_lens,
                               value=-1e6)
-        return nn.functional.softmax(X.reshape(shape), dim=-1)
+        return nn.functional.softmax(X.reshape(shape), dim=-1)#重新塑性
 
 class DotProductAttention(nn.Module):
     """Scaled dot product attention.
@@ -49,7 +49,7 @@ class DotProductAttention(nn.Module):
         # Set `transpose_b=True` to swap the last two dimensions of `keys`
         scores = torch.bmm(queries, keys.transpose(1,2)) / math.sqrt(d)
         self.attention_weights = masked_softmax(scores, valid_lens)
-        return torch.bmm(self.dropout(self.attention_weights), values)
+        return torch.bmm(self.dropout(self.attention_weights), values)#values也被分头了
     
 def transpose_qkv(X, num_heads):
     """为了多注意力头的并行计算而变换形状"""
@@ -68,7 +68,7 @@ def transpose_qkv(X, num_heads):
 
 
 #@save
-def transpose_output(X, num_heads):
+def transpose_output(X, num_heads):#合并headers
     """逆转transpose_qkv函数的操作"""
     X = X.reshape(-1, num_heads, X.shape[1], X.shape[2])
     X = X.permute(0, 2, 1, 3)

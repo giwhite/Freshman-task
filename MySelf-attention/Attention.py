@@ -25,7 +25,7 @@ class MultiHeadAttention(nn.Module):
         # 经过变换后，输出的queries，keys，values　的形状:
         # (batch_size*num_heads，查询或者“键－值”对的个数，
         # num_hiddens/num_heads)
-        queries = transpose_qkv(self.W_q(queries), self.num_heads)
+        queries = transpose_qkv(self.W_q(queries), self.num_heads)#这里进行了拆分，拆分成了5个
         keys = transpose_qkv(self.W_k(keys), self.num_heads)
         values = transpose_qkv(self.W_v(values), self.num_heads)
 
