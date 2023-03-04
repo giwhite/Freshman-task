@@ -29,6 +29,10 @@ class MultiHeadAttention(nn.Module):
         keys = transpose_qkv(self.W_k(keys), self.num_heads)
         values = transpose_qkv(self.W_v(values), self.num_heads)
 
+        '''
+        这里是使用了mask-softmax
+
+        '''
         if valid_lens is not None:
             # 在轴0，将第一项（标量或者矢量）复制num_heads次，
             # 然后如此复制第二项，然后诸如此类。
@@ -38,7 +42,13 @@ class MultiHeadAttention(nn.Module):
         # output的形状:(batch_size*num_heads，查询的个数，
         # num_hiddens/num_heads)
         output = self.attention(queries, keys, values, valid_lens)
-
+        '''
+        d = queries.shape[-1]
+        scores = torch.bmm(queries, keys.transpose(1,2)) / math.sqrt(d)
+        self.attention_weights = nn.functional.softmax(scores,dim = -1)
+        output = torch.bmm(self.dropout(self.attention_weights), values)
+        '''
+        
         # output_concat的形状:(batch_size，查询的个数，num_hiddens)
         output_concat = transpose_output(output, self.num_heads)
         return self.W_o(output_concat)

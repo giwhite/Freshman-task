@@ -17,15 +17,7 @@ class PositionWiseFFN(nn.Module):#done
     def forward(self, X):
         return self.dense2(self.relu(self.dense1(X)))
     
-def test(mode):
-    if mode == 'FFN':
-        ffn = PositionWiseFFN(4, 4, 8)
-        ffn.eval()
-        ffn(torch.ones((2, 3, 4)))[0]
-    elif mode == 'add_norm':
-        add_norm = AddNorm([3, 4], 0.5)
-        add_norm.eval()
-        add_norm(torch.ones((2, 3, 4)), torch.ones((2, 3, 4))).shape
+
 
 class AddNorm(nn.Module):#done
     """残差连接后进行层规范化"""
@@ -78,7 +70,7 @@ class DecoderBlock(nn.Module):
                  norm_shape, ffn_num_input, ffn_num_hiddens, num_heads,
                  dropout, i, **kwargs):
         super(DecoderBlock, self).__init__(**kwargs)
-        self.i = i
+        self.i = i#因为每一层的堆叠，对每一层进行标记
         self.attention1 = MultiHeadAttention(
             key_size, query_size, value_size, num_hiddens, num_heads, dropout)
         self.addnorm1 = AddNorm(norm_shape, dropout)
@@ -117,3 +109,27 @@ class DecoderBlock(nn.Module):
         Y2 = self.attention2(Y, enc_outputs, enc_outputs, enc_valid_lens)
         Z = self.addnorm2(Y, Y2)
         return self.addnorm3(Z, self.ffn(Z)), state
+    
+def test(mode):
+    if mode == 'FFN':
+        ffn = PositionWiseFFN(4, 4, 8)
+        ffn.eval()
+        ffn(torch.ones((2, 3, 4)))[0]
+    elif mode == 'add_norm':
+        add_norm = AddNorm([3, 4], 0.5)
+        add_norm.eval()
+        add_norm(torch.ones((2, 3, 4)), torch.ones((2, 3, 4))).shape
+    elif mode == 'decoder_blk':
+        X = torch.ones((2, 100, 24))
+        valid_lens = torch.tensor([3, 2])
+        encoder_blk = EncoderBlock(24, 24, 24, 24, [100, 24], 24, 48, 8, 0.5)
+        encoder_blk.eval()
+        encoder_blk(X, valid_lens).shape
+        decoder_blk = DecoderBlock(24, 24, 24, 24, [100, 24], 24, 48, 8, 0.5, 0)
+        decoder_blk.eval()
+        X = torch.ones((2, 100, 24))
+        state = [encoder_blk(X, valid_lens), valid_lens, [None]]
+        decoder_blk(X, state)[0].shape
+
+if __name__ == "__main__":
+    test('decoder_blk')

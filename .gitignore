@@ -8,5 +8,6 @@ MyjointBert/data/atis/
 MyjointBert/data/snips/
 MyjointBert/fuss/
 venv/
+papers/
 .vscode/
 __pycache__/
