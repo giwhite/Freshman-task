@@ -1,12 +1,13 @@
 import torch.nn as nn
 import torch
-import d2l
+from d2l import torch as d2l
 import math
 
 def sequence_mask(X, valid_len, value=0):
     """Mask irrelevant entries in sequences.
 
     Defined in :numref:`sec_seq2seq_decoder`"""
+
     maxlen = X.size(1)#x到这里展成2维的[batch*headers*maxlen,键值对]
     mask = torch.arange((maxlen), dtype=torch.float32,
                         device=X.device)[None, :] < valid_len[:, None]#这相当于在键值对上确定有效长度

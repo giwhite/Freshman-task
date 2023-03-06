@@ -1,7 +1,7 @@
 import math
 import torch.nn as nn
-from Trans_toolkits import EncoderBlock,DecoderBlock,PositionalEncoding
-
+from Trans_toolkits import EncoderBlock,DecoderBlock,PositionalEncoding,EncoderDecoder
+from d2l import torch as d2l
 class TransformerEncoder(nn.Module):
     """Transformer编码器"""
     def __init__(self, vocab_size, key_size, query_size, value_size,
@@ -66,3 +66,24 @@ class TransformerDecoder(nn.Module):
     @property
     def attention_weights(self):
         return self._attention_weights
+    
+
+if __name__ == "__main__":
+    num_hiddens, num_layers, dropout, batch_size, num_steps = 32, 2, 0.1,64, 10#这个num_steps就是键值对的个数
+    lr, num_epochs, device = 0.005, 200, d2l.try_gpu()
+    ffn_num_input, ffn_num_hiddens, num_heads = 32,64,4
+    key_size, query_size, value_size = 32, 32, 32
+    norm_shape = [32]
+    train_iter,src_vocab,tgt_vocab = d2l.load_data_nmt(batch_size=batch_size,num_steps=num_steps)
+    encoder = TransformerEncoder(
+        len(src_vocab), key_size,query_size, value_size,num_hiddens,
+        norm_shape, ffn_num_input, ffn_num_hiddens,num_heads,
+        num_layers, dropout
+    )
+    decoder = TransformerDecoder(
+        len(tgt_vocab), key_size, query_size,value_size,num_hiddens,
+        norm_shape,ffn_num_input,ffn_num_hiddens,num_heads,
+        num_layers,dropout
+    )
+    net = EncoderDecoder(encoder,decoder)
+    d2l.train_seq2seq(net,train_iter,lr,num_epochs,tgt_vocab,device)

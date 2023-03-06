@@ -4,7 +4,6 @@ import torch
 from torch import nn
 
 from Attention import MultiHeadAttention
-
 class PositionWiseFFN(nn.Module):#done
     """基于位置的前馈网络"""
     def __init__(self, ffn_num_input, ffn_num_hiddens, ffn_num_outputs,
@@ -47,6 +46,22 @@ class EncoderBlock(nn.Module):#done
         Y = self.addnorm1(X, self.attention(X, X, X, valid_lens))#此时输入的X同时是qkv，而且x是embedding之后的
         return self.addnorm2(Y, self.ffn(Y))
     
+
+class EncoderDecoder(nn.Module):
+    """The base class for the encoder-decoder architecture.
+
+    Defined in :numref:`sec_encoder-decoder`"""
+    def __init__(self, encoder, decoder, **kwargs):
+        super(EncoderDecoder, self).__init__(**kwargs)
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, enc_X, dec_X, *args):
+        enc_outputs = self.encoder(enc_X, *args)#此时出来就是计算完成了整个encoder
+        dec_state = self.decoder.init_state(enc_outputs, *args)#所以这里是在重复的encoder计算完成后，将encoder中的键值对传入decoder中
+        #作为初始化的参数，然后就是decoder进行计算了。
+        return self.decoder(dec_X, dec_state)
+
 class PositionalEncoding(nn.Module):#done
     """位置编码"""
     def __init__(self, num_hiddens, dropout, max_len=1000):
@@ -57,7 +72,7 @@ class PositionalEncoding(nn.Module):#done
         X = torch.arange(max_len, dtype=torch.float32).reshape(
             -1, 1) / torch.pow(10000, torch.arange(
             0, num_hiddens, 2, dtype=torch.float32) / num_hiddens)
-        self.P[:, :, 0::2] = torch.sin(X)# 取出两个来
+        self.P[:, :, 0::2] = torch.sin(X)# 从0开始，隔2个为位置填入一个
         self.P[:, :, 1::2] = torch.cos(X)
 
     def forward(self, X):
@@ -87,11 +102,13 @@ class DecoderBlock(nn.Module):
         # 因此state[2][self.i]初始化为None。
         # 预测阶段，输出序列是通过词元一个接着一个解码的，
         # 因此state[2][self.i]包含着直到当前时间步第i个块解码的输出表示
-        if state[2][self.i] is None:
+        if state[2][self.i] is None:#注意这里有一个self.i每个i表示第几个layer，所以这个layer对应的state又是新的，所以在训练阶段，这个state[2],
+            #会包含所有的解码器的输出。
             key_values = X
         else:
-            key_values = torch.cat((state[2][self.i], X), axis=1)
+            key_values = torch.cat((state[2][self.i], X), axis=1)#这一步应该就是用在预测的时候
         state[2][self.i] = key_values
+        #所以这里是一个叠加的过程，这个过程中，解码器会依次叠加前一个状态的quries，所以达到mask的目的
         if self.training:
             batch_size, num_steps, _ = X.shape
             # dec_valid_lens的开头:(batch_size,num_steps),
@@ -108,7 +125,7 @@ class DecoderBlock(nn.Module):
         # enc_outputs的开头:(batch_size,num_steps,num_hiddens)
         Y2 = self.attention2(Y, enc_outputs, enc_outputs, enc_valid_lens)
         Z = self.addnorm2(Y, Y2)
-        return self.addnorm3(Z, self.ffn(Z)), state
+        return self.addnorm3(Z, self.ffn(Z)), state#此时回传了state
     
 def test(mode):
     if mode == 'FFN':
