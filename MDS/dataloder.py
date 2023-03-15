@@ -61,7 +61,19 @@ class data_loader(object):
         return exampels
         # 这个用来得到tensor的数据
 
+    def cache_and_save_examples(self,mode):
+        examples = self.create_examples()
+        data_examples_dir = 'cached_{}_{}_examples'.format(self.args.task,mode)
+        file_to = os.path.join(self.args.data_dir,data_examples_dir)
+        if os.path.exists(file_to):
+            logger.info('looking into {}'.format(file_to))
+            examples = torch.load(file_to)
+        else:
+            logger.info('create dataset in file: {}'.format(file_to))
+            torch.save(examples,file_to)
 
+        return examples
+    
 
 def Examples2Features(args,
                              examples,
@@ -75,24 +87,29 @@ def Examples2Features(args,
     '''
     
     features = []
-    article_ids = None
-    highlight_ids = None
+
     for ex_ids, example in enumerate(examples):
         if ex_ids % 5000 == 0:
             logger.info("Writing example %d of %d"%(ex_ids,len(examples)))
         #tokens
+        article_ids_masks = tokenizer(example.article)
+        highlight_ids_masks = tokenizer(example.highlight)
+        article_ids,attention_mask = article_ids_masks['input_ids'],article_ids_masks['attention_mask']
+    
+        highlight_ids,decoder_attention_mask = highlight_ids_masks['input_ids'],highlight_ids_masks['attention_mask']
 
-        article_ids = tokenizer(example.article)
-        highlight_ids = tokenizer(example.highlight)
+
+
         if len(article_ids) > args.input_max_len:
             article_ids = article_ids[:args.input_max_len]
+            attention_mask = attention_mask[:args.input_max_len]
+        
 
         if len(highlight_ids) > args.decoder_max_len:
             highlight_ids = highlight_ids[:args.decoder_max_len]
-
-        #prepare attention_mask
-        attention_mask = [1 if mask_padding_with_zero else 0] * len(article_ids)
-        decoder_attention_mask = [1 if mask_padding_with_zero else 0] * len(highlight_ids)
+            decoder_attention_mask = decoder_attention_mask[:args.decoder_max_len]
+        
+      
 
 
         #padding

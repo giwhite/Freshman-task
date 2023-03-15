@@ -10,6 +10,7 @@ from utils import init_logger,get_tokenizer
 def main(args):
     init_logger()
     tokenizer = get_tokenizer()
+  
     dataset = cache_and_load(args,tokenizer,'train')
     
 
