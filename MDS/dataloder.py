@@ -1,6 +1,7 @@
 import os
 import torch
 import logging
+import pickle
 from tqdm import tqdm
 from torch.utils.data import TensorDataset
 
@@ -101,15 +102,15 @@ class data_loader(object):
             assert len(decoder_attention_mask) == self.args.decoder_max_len ,"wrong len of the decoder_attention_mask: {} vs {}".format(len(decoder_attention_mask),
                                                                                                                                         self.args.input_max_len)
 
-        all_input_ids.append(torch.tensor(input_ids))
-        all_attention_mask.append(torch.tensor(attention_mask))
-        all_decoder_input_ids.append(torch.tensor(decoder_input_ids))
-        all_decoder_attention_ids.append(torch.tensor(decoder_attention_mask))
+            all_input_ids.append(input_ids)
+            all_attention_mask.append(attention_mask)
+            all_decoder_input_ids.append(decoder_input_ids)
+            all_decoder_attention_ids.append(decoder_attention_mask)
         #read and process data in one iteration
-        return TensorDataset(all_input_ids,
-                             all_attention_mask,
-                             all_decoder_input_ids,
-                             all_decoder_attention_ids)
+        return TensorDataset(torch.tensor(all_input_ids),
+                             torch.tensor(all_attention_mask),
+                             torch.tensor(all_decoder_input_ids),
+                             torch.tensor(all_decoder_attention_ids))
     
 
     # def cache_and_save_examples(self,mode):
@@ -200,17 +201,18 @@ class data_loader(object):
 def cache_and_load(args,tokenizer,mode):
     Dloader = data_loader(args)
     
-    data_features_dir = 'cached_{}_{}_features'.format(args.task,mode)
+    data_features_dir = 'cached_{}_{}_features.pkl'.format(args.task,mode)
     file_to = os.path.join(args.data_dir,data_features_dir)
 
     if os.path.exists(file_to):
         logger.info('looking into {}'.format(file_to))
-        dataset = torch.load(file_to)
+        dataset = pickle.load(open(file_to, "rb"))
     else:
+        
         logger.info('create dataset in file: {}'.format(file_to))
-        dataset = Dloader.load_create_dateset()
+        dataset = Dloader.load_create_dateset(tokenizer)
 
         logger.info('saving dataset in file: {}'.format(file_to))
-        torch.save(dataset,file_to)   
+        pickle.dump(dataset, open(file_to, "wb")) 
 
     return dataset

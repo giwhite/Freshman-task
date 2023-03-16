@@ -58,3 +58,21 @@
 03/15/2023 22:40:53 - INFO - dataloder -   Writing example 80000 of 219506
 03/15/2023 22:42:09 - INFO - dataloder -   Writing example 85000 of 219506
 03/15/2023 22:43:26 - INFO - dataloder -   Writing example 90000 of 219506
+03/16/2023 22:16:30 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:18:16 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:24:01 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:24:08 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:28:53 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:28:58 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features
+03/16/2023 22:31:12 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:31:15 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:33:19 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:33:21 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:33:59 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:34:01 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:34:54 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:35:30 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:37:56 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:39:15 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:39:33 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/16/2023 22:39:34 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
