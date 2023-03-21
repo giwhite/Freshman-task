@@ -8,7 +8,7 @@ from utils import getlabels,tokenizer
 import os
 import torch
 from torch.utils.data import TensorDataset
-
+from d2l import torch as d2l
 class processor(object):
     def __init__(self,args) -> None:
         self.args = args
