@@ -14,8 +14,8 @@ def main(args):
   
     train_dataset = cache_and_load(args,tokenizer,'train')
     my_trainer = Trainer(args,train_dataset)
-    if args.do_train:
-        my_trainer.train()
+    
+    my_trainer.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
 
     args= parser.parse_args()
-    args.model_name_or_path = './bart-base'
+    args.model_name_or_path = './bart-large'
     main(args)

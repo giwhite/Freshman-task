@@ -22,3 +22,11 @@
 03/24/2023 19:32:50 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
 03/24/2023 19:35:27 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
 03/24/2023 19:36:52 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:12:02 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:13:13 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:13:43 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:14:16 - INFO - dataloder -   create dataset in file: ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:14:17 - INFO - dataloder -   saving dataset in file: ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:18:27 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:21:49 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl
+03/25/2023 16:25:06 - INFO - dataloder -   looking into ./data\cached_dailymail_train_features.pkl

@@ -21,7 +21,7 @@ class Dotattention(nn.Module):
     def forward(self,encoder_hidden_state,decoder_hidden_state):
         encoder_matrix = self.W_i(encoder_hidden_state.permute(0,2,1))#batch_size,hidden_size,t
         decoder_matrix = self.W_t(decoder_hidden_state)#batch_size,t,hidden_size
-        encoder_matrix.permute(0,2,1)#batch_size,t, hidden_size
+        encoder_matrix = encoder_matrix.permute(0,2,1)#batch_size,t, hidden_size
         logits = nn.functional.tanh(encoder_matrix+decoder_matrix)
         return nn.functional.softmax(self.W_v(logits),dim=-1)
 
@@ -50,7 +50,7 @@ class Possibility_vcb(nn.Module):
         #context_matrix = encoder_hidden_state[attention_mask]*attention_weight[:valid_len].reshape(shape[0],shape[1],-1)
         #context_vec = torch.sum(context_matrix,dim=1)# batch_size ,hidden_dim
         #h_d = decoder_hidden_state[decoder_attention_mask]
-        context_matrix = torch.bmm(encoder_hidden_state,attention_weight)# batch_size, t,hidden_dim
+        context_matrix = torch.bmm(attention_weight,encoder_hidden_state)# batch_size, t,hidden_dim
         concat = torch.cat([context_matrix,decoder_hidden_state],dim=2)# batch_size, t, hidden_dim*2
         #addcat = context_matrix + encoder_hidden_state 如果是使用加和方式的话
 
@@ -79,8 +79,8 @@ class MyBart(BartPretrainedModel):
                            decoder_attention_mask=decoder_attention_mask,
                            output_hidden_states=True)
         #直接调用decoder_hidden_state,用字典方式
-        decoder_hidden_state = output['decoder_hidden_states'][6]#取出最后一个
-        encoder_hidden_state = output['encoder_last_hidden_state']
+        decoder_hidden_state = output['decoder_hidden_states'][6]#取出最后一个8*56*1024
+        encoder_hidden_state = output['encoder_last_hidden_state']#8*780*1024
         attention_weight = self.attention(encoder_hidden_state=encoder_hidden_state,
                                           decoder_hidden_state=decoder_hidden_state)
         logits = self.Pw(attention_weight=attention_weight,
