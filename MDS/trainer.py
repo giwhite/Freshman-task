@@ -32,6 +32,7 @@ class Trainer(object):
         for _ in epoch_iterator:
             train_iterator = tqdm(train_dataLoader,desc="iterating")
             for i, batch in enumerate(train_dataLoader):
+                batch = tuple(t.to(self.device) for t in batch)
                 inputs = {'input_ids':batch[0],
                           'attention_mask':batch[1],
                           'decoder_input_ids':batch[2],

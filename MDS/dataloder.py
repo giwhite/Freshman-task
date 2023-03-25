@@ -28,6 +28,7 @@ class data_loader(object):
     def __init__(self,args) -> None:
         self.args = args
         
+    
     def load_create_dateset(self,
                         tokenizer,
                         pad_token_id = 0,
@@ -112,91 +113,6 @@ class data_loader(object):
                              torch.tensor(all_decoder_input_ids),
                              torch.tensor(all_decoder_attention_ids))
     
-
-    # def cache_and_save_examples(self,mode):
-    #     examples = self.create_examples()
-    #     data_examples_dir = 'cached_{}_{}_examples'.format(self.args.task,mode)
-    #     file_to = os.path.join(self.args.data_dir,data_examples_dir)
-    #     if os.path.exists(file_to):
-    #         logger.info('looking into {}'.format(file_to))
-    #         examples = torch.load(file_to)
-    #     else:
-    #         logger.info('create dataset in file: {}'.format(file_to))
-    #         torch.save(examples,file_to)
-
-    #     return examples
-    
-
-# def Examples2Features(args,
-#                              examples,
-#                              tokenizer,
-#                              pad_token_id = 0,
-#                              mask_padding_with_zero = True,
-#                              pad_segment_id = 0):
-    
-#     '''
-#     need to prepare attention_mask,input_ids(article_ids),decoder_inputs(highlight_ids),decoder_mask
-#     '''
-    
-#     features = []
-
-#     for ex_ids, example in enumerate(examples):
-#         if ex_ids % 5000 == 0:
-#             logger.info("Writing example %d of %d"%(ex_ids,len(examples)))
-#         #tokens
-#         article_ids_masks = tokenizer(example.article)
-#         highlight_ids_masks = tokenizer(example.highlight)
-#         article_ids,attention_mask = article_ids_masks['input_ids'],article_ids_masks['attention_mask']
-    
-#         highlight_ids,decoder_attention_mask = highlight_ids_masks['input_ids'],highlight_ids_masks['attention_mask']
-
-
-
-#         if len(article_ids) > args.input_max_len:
-#             article_ids = article_ids[:args.input_max_len]
-#             attention_mask = attention_mask[:args.input_max_len]
-        
-
-#         if len(highlight_ids) > args.decoder_max_len:
-#             highlight_ids = highlight_ids[:args.decoder_max_len]
-#             decoder_attention_mask = decoder_attention_mask[:args.decoder_max_len]
-        
-      
-
-
-#         #padding
-#         padding_len_en = args.input_max_len - len(article_ids)
-#         padding_len_de = args.decoder_max_len - len(highlight_ids)
-
-#         input_ids = article_ids + [pad_token_id]*padding_len_en
-#         attention_mask = attention_mask + [0 if mask_padding_with_zero else 1 ]*padding_len_en
-#         decoder_input_ids = highlight_ids + [pad_segment_id]* padding_len_de
-#         decoder_attention_mask = decoder_attention_mask + [0 if mask_padding_with_zero else 1] * padding_len_de
-
-#         #判断输入有没有错
-#         assert len(input_ids) == args.input_max_len , "wrong len of the input_ids: {} vs {}".format(len(input_ids),args.input_max_len)
-#         assert len(attention_mask) == args.input_max_len, "wrong len of the attention_mask: {} vs {}".format(len(attention_mask),args.input_max_len)
-#         assert len(decoder_input_ids) == args.decoder_max_len,"wrong len of the decoder_input_ids: {} vs {}".format(len(decoder_input_ids),args.decoder_max_len)
-#         assert len(decoder_attention_mask) == args.decoder_max_len ,"wrong len of the decoder_attention_mask: {} vs {}".format(len(decoder_attention_mask),args.input_max_len)
-
-#         if ex_ids < 5:
-#             logger.info('******examples******')
-#             logger.info('id %s' % example.id)
-#             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-#             logger.info("attention_mask: %s" % " ".join([str(x) for x in attention_mask]))
-#             logger.info("decoder_input_ids: %s" % " ".join([str(x) for x in decoder_input_ids]))
-#             logger.info("decoder_attention_mask: %s" % " ".join([str(x) for x in decoder_attention_mask]))
-
-#         features.append(
-#             InputFeatures(
-#                         example.id,
-#                         input_ids,
-#                         attention_mask,
-#                         decoder_input_ids,
-#                         decoder_attention_mask,
-#                         ))
-#     return features
-
 
 def cache_and_load(args,tokenizer,mode):
     Dloader = data_loader(args)

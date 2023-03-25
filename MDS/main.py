@@ -14,7 +14,8 @@ def main(args):
   
     train_dataset = cache_and_load(args,tokenizer,'train')
     my_trainer = Trainer(args,train_dataset)
-    my_trainer.train()
+    if args.do_train:
+        my_trainer.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -30,6 +31,9 @@ if __name__ == "__main__":
     parser.add_argument("--test_batch_size", default=16, type=int, help="batch size for test")
     parser.add_argument("--epoch_nums", default=10, type=int, help="epoch numbers")
     parser.add_argument("--learning_rate", default=1e4, type=int, help="learning rate of the training prograss")
+
+    parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
+    parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the test set.")
 
     args= parser.parse_args()
     args.model_name_or_path = './bart-base'
