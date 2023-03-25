@@ -28,6 +28,21 @@ class data_loader(object):
     def __init__(self,args) -> None:
         self.args = args
         
+    def load_test_dataset(self,raw_data,tokenizer):
+        
+        topic_text = []
+        topic_sum = []
+        bar_data = tqdm(raw_data,desc='processing the test data')
+        for topic in bar_data:
+            topic_articles = []
+            for artic in topic['context']:
+                sentences = artic.split('\n')[1:-1]
+                setnences_ids = tokenizer(sentences)
+                topic_articles.append(sentences)
+            topic_sum = topic['summary'][0]
+            topic_text.append(topic_articles)
+            
+        return topic_text
     
     def load_create_dateset(self,
                         tokenizer,
