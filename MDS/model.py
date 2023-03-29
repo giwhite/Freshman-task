@@ -45,11 +45,7 @@ class Possibility_vcb(nn.Module):
 
         decoder_hidden_state: batch_size ,seq_length(t),hidden_dim
         '''
-        #shape = encoder_hidden_state.shape
-        #valid_len = (attention_weight == 1).sum()
-        #context_matrix = encoder_hidden_state[attention_mask]*attention_weight[:valid_len].reshape(shape[0],shape[1],-1)
-        #context_vec = torch.sum(context_matrix,dim=1)# batch_size ,hidden_dim
-        #h_d = decoder_hidden_state[decoder_attention_mask]
+       
         context_matrix = torch.bmm(attention_weight,encoder_hidden_state)# batch_size, t,hidden_dim
         concat = torch.cat([context_matrix,decoder_hidden_state],dim=2)# batch_size, t, hidden_dim*2
         #addcat = context_matrix + encoder_hidden_state 如果是使用加和方式的话
@@ -58,11 +54,19 @@ class Possibility_vcb(nn.Module):
         output = self.dropout(output)
         logits = self.fn(output)
         return nn.functional.softmax(logits,dim=-1)#得到不同t个state的每个的词的概率，然后求解即可
+    
+class MyMMR(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self,x):
+        pass
 
 class MyBart(BartPretrainedModel):
     def __init__(self,config,args) -> None:
         super(MyBart,self).__init__(config)
         self.args = args
+        self.config = config
         self.bart = BartForConditionalGeneration(config=config)
         self.Pw = Possibility_vcb(args.dropout_rate,
                                   args.hidden_dim,
@@ -70,6 +74,7 @@ class MyBart(BartPretrainedModel):
                                   config.d_model,
                                   config.vocab_size)
         self.attention = Dotattention(args,config.d_model)
+        
 
         
     def forward(self,input_ids,attention_mask,decoder_input_ids,decoder_attention_mask):
@@ -86,7 +91,8 @@ class MyBart(BartPretrainedModel):
         logits = self.Pw(attention_weight=attention_weight,
                          encoder_hidden_state=encoder_hidden_state,
                          decoder_hidden_state=decoder_hidden_state)
-        
+        loss_fn = nn.CrossEntropyLoss()
+        loss = loss_fn(logits.permute(0,2,1),decoder_input_ids)
         # pending need to finish
-        return logits
+        return (logits,loss)
         

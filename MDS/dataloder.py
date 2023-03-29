@@ -3,6 +3,7 @@ import torch
 import logging
 import pickle
 from tqdm import tqdm
+from datasets import load_dataset
 from torch.utils.data import TensorDataset
 
 
@@ -10,19 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # class InputExample(object):
-#     def __init__(self,id,article,highlight) -> None:
-#         self.id = id
-#         self.article = article
-#         self.highlight = highlight
 
-
-# class InputFeatures(object):
-#     def __init__(self,ids,input_ids,attention_mask,decoder_input_ids,decoder_attention_mask) -> None:
-#         self.ids = ids
-#         self.input_ids = input_ids
-#         self.attention_mask = attention_mask
-#         self.decoder_input_ids = decoder_input_ids
-#         self.decoder_attention_mask = decoder_attention_mask
 
 class data_loader(object):
     def __init__(self,args) -> None:
@@ -30,19 +19,32 @@ class data_loader(object):
         
     def load_test_dataset(self,raw_data,tokenizer):
         
-        topic_text = []
+        
         topic_sum = []
+        all_text = []
+        text_pieces = []
         bar_data = tqdm(raw_data,desc='processing the test data')
         for topic in bar_data:
-            topic_articles = []
+            topic_arti = []#用来放每个文章的句子ids，
+           
+            sentences_ids = None
             for artic in topic['context']:
-                sentences = artic.split('\n')[1:-1]
-                setnences_ids = tokenizer(sentences)
-                topic_articles.append(sentences)
-            topic_sum = topic['summary'][0]
-            topic_text.append(topic_articles)
-            
-        return topic_text
+                sentences = artic.split('\n')[1:-1]#不需要转化成ID
+                sentence_ids = tokenizer(sentences)['input_ids']#如果使用LSTM那就有要考虑padding的问题
+                topic_arti.append(sentence_ids)
+                if sentences_ids == None:#需要把这个topic的所有句子都合并到一个中
+                    
+                    sentences_ids = sentence_ids
+                else:
+                   
+                    sentences_ids += sentence_ids
+            topic_sum.append(topic['summary'][0])
+            text_pieces.append(sentence_ids)#一篇文章的ids，用来计算document向量
+            all_text.append(sentences_ids)#一个topic的ids，用来计算MMR得分，选出句子
+            #出现问题，需要填充
+        all_text = torch.tensor(all_text)
+        text_pieces = torch.tensor(text_pieces)
+        return (TensorDataset(all_text,text_pieces),topic_sum)#这个sum放出去就是用来计算的
     
     def load_create_dateset(self,
                         tokenizer,
@@ -141,7 +143,11 @@ def cache_and_load(args,tokenizer,mode):
     else:
         
         logger.info('create dataset in file: {}'.format(file_to))
-        dataset = Dloader.load_create_dateset(tokenizer)
+        if mode == 'train':
+            dataset = Dloader.load_create_dateset(tokenizer)
+        else :
+            raw_data = load_dataset('nbtpj/DUC2004',data_dir="./data")
+            dataset = Dloader.load_test_dataset(raw_data['train'],tokenizer)
 
         logger.info('saving dataset in file: {}'.format(file_to))
         pickle.dump(dataset, open(file_to, "wb")) 
