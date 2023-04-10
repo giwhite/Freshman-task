@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from transformers import BartPretrainedModel,BartForConditionalGeneration
+
+
+
 '''
 
 encoder_hidden_states (tuple(torch.FloatTensor),
@@ -53,14 +56,40 @@ class Possibility_vcb(nn.Module):
         output = self.W_y(concat)
         output = self.dropout(output)
         logits = self.fn(output)
-        return nn.functional.softmax(logits,dim=-1)#得到不同t个state的每个的词的概率，然后求解即可
+        return logits#得到不同t个state的每个的词的概率，这里不需要进行计算softmax
     
-class MyMMR(nn.Module):
-    def __init__(self) -> None:
+class LSTMEncoder(nn.Module):
+    def __init__(self,vocab_size,hidden_dim,embedding_dim) -> None:
         super().__init__()
+        self.encoder = nn.LSTM(embedding_dim,hidden_dim)
+        self.embedding = nn.Embedding(vocab_size,embedding_dim)
     
-    def forward(self,x):
-        pass
+    def forward(self,all_sentences,sentences_lens,):
+        lens,indices = sentences_lens.sort(descending = True)
+        '''
+        这一步的意思是根据indices对input进行排序，indices是一个整数张量，它表示了原始input中每个元素的新位置。
+        例如，如果input是[[1, 2], [3, 4], [5, 6]]，indices是[2, 0, 1]，那么input[indices]就是[[5, 6], [1, 2], [3, 4]]。
+        这样做的目的是为了让不同长度的序列按照长度降序排列，这样才能使用打包序列的方法。
+        '''
+        all_sentences = all_sentences[indices]
+        packed_sent = nn.utils.rnn.pack_padded_sequence(all_sentences,lens,batch_first=True)
+        outputs,(hidden,cell) = self.encoder(packed_sent)
+        outputs,_ = nn.utils.rnn.pad_packed_sequence(outputs,batch_first=True)
+        _,indices = indices.sort()
+        '''
+        这样做的目的是为了让output和hidden能够按照原始顺序还原，这样才能和输入序列对应起来。
+        '''
+        outputs = outputs[indices]
+        hidden = hidden[:,indices]
+        '''
+        这一步的意思是根据indices对hidden的第二个维度进行排序，hidden是一个三维张量，它表示了LSTM层的最后一个隐藏状态，
+        它的形状是[num_layers * num_directions, batch_size, hidden_size]。这样做的目的是为了让hidden和input保持一致的顺序，这样才能正确地生成输出序列。
+        已收到消息. 这一步的意思是根据indices对hidden的第二个维度进行排序，hidden是一个三维张量，
+        它表示了LSTM层的最后一个隐藏状态，它的形状是[num_layers * num_directions, batch_size, hidden_size]。
+        这样做的目的是为了让hidden和input保持一致的顺序，这样才能正确地生成输出序列。
+
+        '''
+        return outputs,torch.squeeze(hidden)#将第一维的1压缩回去，得到每个句子序列中的词的hidden_state，也就是我们的词向量
 
 class MyBart(BartPretrainedModel):
     def __init__(self,config,args) -> None:
@@ -95,4 +124,17 @@ class MyBart(BartPretrainedModel):
         loss = loss_fn(logits.permute(0,2,1),decoder_input_ids)
         # pending need to finish
         return (logits,loss)
-        
+    
+    def text_generate(self,input_ids,attention_mask,tokenizer):#batchsize 为1
+        decoder_input_ids = torch.tensor([[tokenizer.bos_token_id]])
+        while True:
+            output = self.bart(input_ids=input_ids,
+                            attention_mask=attention_mask,
+                            decoder_input_ids=decoder_input_ids)
+            next_token_logits = output.logits[:,-1,:]
+            next_token_id = torch.argmax(next_token_logits,dim = -1).unsqueeze(0)
+            decoder_input_ids = torch.cat([decoder_input_ids,next_token_id],dim=-1)#在行上面进行操作
+            if next_token_id == tokenizer.eos_token_id or decoder_input_ids.size(-1) == self.args.decoder_max_len:
+                break
+        summary = tokenizer.decode(decoder_input_ids[0],skip_special_tokens=True)#这里放0是因为之前的decoder_input_ids放的是一个二维数组
+        return summary
