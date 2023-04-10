@@ -3,9 +3,10 @@ import torch
 import logging
 from model import MyBart
 from tqdm import tqdm,trange
+from utils import comput_metrics
 from dataloder import data_loader
 from transformers import BartConfig,AdamW,get_linear_schedule_with_warmup
-from torch.utils.data import DataLoader,RandomSampler
+from torch.utils.data import DataLoader,RandomSampler,SequentialSampler
 from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class Trainer(object):
         epoch_iterator = trange(int(self.args.epoch_nums),desc="epoch iterating")
         for _ in epoch_iterator:
             train_iterator = tqdm(train_dataLoader,desc="iterating")
-            for step, batch in enumerate(train_dataLoader):
+            for step, batch in enumerate(train_iterator):
                 batch = tuple(t.to(self.device) for t in batch)
                 inputs = {'input_ids':batch[0],
                           'attention_mask':batch[1],
@@ -76,9 +77,17 @@ class Trainer(object):
         logger.info("training finished*******")
         
 
-    def evaluate(self,mode):
+    def evaluate(self):
         #mode : train,eval,test
-        pass
+        self.model.eval()
+        self.model.zero_grad()
+        sampler = SequentialSampler(self.test_dataset)
+        test_dataloader = DataLoader(self.test_dataset,batch_size=self.args.test_batch_size,sampler=sampler)
+        logger.info("********start test**********")
+        test_bar = tqdm(test_dataloader,desc='test iterating')
+        for docs in test_bar:
+            
+            pass
 
     def save_model(self):
          #首先判断路径
@@ -88,3 +97,12 @@ class Trainer(object):
         #如果又module属性，那就使用里面的属性否者直接使用
         model_save.save_pretrained(self.args.model_dir)#这个可以看源代码，save_pretrained属性会把config和模型参数放入
         logger.info('saving the model in {}'.format(self.args.model_dir))
+
+    def load_model(self):
+        if not os.path.exists(self.args.model_dir):
+            raise Exception('模型的参数文件不存在,请先训练')
+        
+        self.model = MyBart.from_pretrained(self.args.model_name_or_path,
+                                            config=self.config,
+                                            args=self.args)
+        self.model.to(self.device)
