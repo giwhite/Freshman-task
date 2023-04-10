@@ -5,7 +5,7 @@ import pickle
 from tqdm import tqdm
 from datasets import load_dataset
 from torch.utils.data import TensorDataset
-
+from transformers import DataCollatorForSeq2Seq
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class data_loader(object):
         self.args = args
         
     def load_test_dataset(self,raw_data,tokenizer):
-        
+        data_collator = DataCollatorForSeq2Seq(tokenizer, padding=True)
         
         topic_sum = []
         all_text = []
@@ -45,6 +45,10 @@ class data_loader(object):
         all_text = torch.tensor(all_text)
         text_pieces = torch.tensor(text_pieces)
         return (TensorDataset(all_text,text_pieces),topic_sum)#这个sum放出去就是用来计算的
+        '''
+        最后的return的结果应该是，topic_docs_ids,topic_dics_mask
+        然后mask是通过mmr生成的
+        '''
     
     def load_create_dateset(self,
                         tokenizer,
@@ -146,8 +150,10 @@ def cache_and_load(args,tokenizer,mode):
         if mode == 'train':
             dataset = Dloader.load_create_dateset(tokenizer)
         else :
-            raw_data = load_dataset('nbtpj/DUC2004',data_dir="./data")
+            raw_data = load_dataset('nbtpj/DUC2004')
             dataset = Dloader.load_test_dataset(raw_data['train'],tokenizer)
+            #这个返回的数据集['train']['summary']这个是又50个摘要，这个50个中分别是4个
+            # ['train']['context']这个是有50篇topic,每个topic有10篇文章
 
         logger.info('saving dataset in file: {}'.format(file_to))
         pickle.dump(dataset, open(file_to, "wb")) 
