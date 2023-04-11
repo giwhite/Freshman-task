@@ -4,8 +4,9 @@ import logging
 import pickle
 from tqdm import tqdm
 from datasets import load_dataset
+from utils import MyMMR
 from torch.utils.data import TensorDataset
-from transformers import DataCollatorForSeq2Seq
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,23 @@ logger = logging.getLogger(__name__)
 class data_loader(object):
     def __init__(self,args) -> None:
         self.args = args
+        self.mmr = MyMMR(args)
         
     def load_test_dataset(self,raw_data,tokenizer):
-        data_collator = DataCollatorForSeq2Seq(tokenizer, padding=True)
+
+        '''
+        需要准备每个句子的id，拼接起来，这里就需要考虑需不需要裁剪了，对每个句子
+        all_sentences_ids
+
+        需要准备一个topic的文章的拼接ids，这里需要裁剪，但是是用哪一个版本
+        直接使用上面的sentences_ids拼接？，然后将将选中的句字部分attention——mask置1
+        concat_sentences_ids
+
+        attention_mask 所有拼接文章的需要的掩码，这个最后的效果应该需要和concat_sentences_ids的长度一样
+
+        padding
+        
+        '''
         
         topic_sum = []
         all_text = []
@@ -46,7 +61,7 @@ class data_loader(object):
         text_pieces = torch.tensor(text_pieces)
         return (TensorDataset(all_text,text_pieces),topic_sum)#这个sum放出去就是用来计算的
         '''
-        最后的return的结果应该是，topic_docs_ids,topic_dics_mask
+        最后的return的结果应该是，all_sentences_ids, concat_sentences_ids，attention_mask
         然后mask是通过mmr生成的
         '''
     
