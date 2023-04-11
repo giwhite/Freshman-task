@@ -32,6 +32,9 @@ if __name__ == "__main__":
     parser.add_argument("--decoder_max_len", default=128, type=int, help="the max input len of a doc in decoder")
     parser.add_argument("--dropout_rate", default=0.1, type=int, help="dropout rate ")
     parser.add_argument("--hidden_dim", default=4096, type=int, help="hidden_size of the possiblity_vcb")
+    parser.add_argument("--encode_hidden_dim", default=128, type=int, help="the hidden dim in LSTMEncoder")
+    parser.add_argument("--embedding_dim", default=256, type=int, help="LSTMEncoder embedding_dim")
+    parser.add_argument("--vocab_size", default=50265, type=int, help="vocab size")
 
     parser.add_argument("--train_batch_size", default=1, type=int, help="training batch size")
     parser.add_argument("--test_batch_size", default=16, type=int, help="batch size for test")
