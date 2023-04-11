@@ -15,6 +15,8 @@ decoder_hidden_states:batch_size, sequence_length, hidden_size
 
 decoder_attentions: batch_size, num_heads, sequence_length, sequence_length
 '''
+
+
 class Dotattention(nn.Module):
     def __init__(self,args,hidden_size) -> None:
         super().__init__()
@@ -64,7 +66,9 @@ class LSTMEncoder(nn.Module):
         self.encoder = nn.LSTM(embedding_dim,hidden_dim)
         self.embedding = nn.Embedding(vocab_size,embedding_dim)
     
-    def forward(self,all_sentences,sentences_lens,):
+    def forward(self,all_sentences,sentences_lens):
+        #此时传入的all_sentences_ids是已经填充过了的
+        all_sentences = self.embedding(all_sentences)
         lens,indices = sentences_lens.sort(descending = True)
         '''
         这一步的意思是根据indices对input进行排序，indices是一个整数张量，它表示了原始input中每个元素的新位置。
@@ -79,7 +83,12 @@ class LSTMEncoder(nn.Module):
         '''
         这样做的目的是为了让output和hidden能够按照原始顺序还原，这样才能和输入序列对应起来。
         '''
-        outputs = outputs[indices]
+        outputs = outputs[indices]#这个地方需要调整不同的序列的顺序，需要把这些序列的顺序该返还回去
+        '''
+        不是的，填充之后的隐藏状态的时间步是和输入序列的长度一样的，只是那些无效时间步的隐藏状态是没有被更新过的，也就是说，它们是上一个有效时间步的隐藏状态。
+        你可以通过打印填充后和打包后的隐藏状态来对比一下，你会发现，打包后的隐藏状态只包含最后一个有效时间步的隐藏状态，
+        而填充后的隐藏状态包含所有时间步的隐藏状态，但是那些无效时间步的隐藏状态和上一个有效时间步的隐藏状态是一样的。那只需要取出最后一个时间步即可
+        '''
         hidden = hidden[:,indices]
         '''
         这一步的意思是根据indices对hidden的第二个维度进行排序，hidden是一个三维张量，它表示了LSTM层的最后一个隐藏状态，
@@ -87,9 +96,13 @@ class LSTMEncoder(nn.Module):
         已收到消息. 这一步的意思是根据indices对hidden的第二个维度进行排序，hidden是一个三维张量，
         它表示了LSTM层的最后一个隐藏状态，它的形状是[num_layers * num_directions, batch_size, hidden_size]。
         这样做的目的是为了让hidden和input保持一致的顺序，这样才能正确地生成输出序列。
-
+        这里的batchsize其实就是序列的个数
         '''
         return outputs,torch.squeeze(hidden)#将第一维的1压缩回去，得到每个句子序列中的词的hidden_state，也就是我们的词向量
+
+
+        
+
 
 class MyBart(BartPretrainedModel):
     def __init__(self,config,args) -> None:
