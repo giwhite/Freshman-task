@@ -1,24 +1,27 @@
 import argparse
 import logging
-from trainer import Trainer
+import torch
+
 from dataloder import data_loader
 from dataloder import cache_and_load
-from utils import init_logger,get_tokenizer
+from trainer import Trainer
+from utils import init_logger,get_tokenizer,MyMMR
 
 
 
 
 def main(args):
+
     init_logger()
     tokenizer = get_tokenizer()
   
-    train_dataset = cache_and_load(args,tokenizer,'train')
-    tdataset = cache_and_load(args,tokenizer,'test')
+    #train_dataset = cache_and_load(args,tokenizer,'train')
+    tdataset = cache_and_load(args, tokenizer, 'test')
    # test_dataset = tdataset[0]
     #test_summary = tdataset[1]
-    my_trainer = Trainer(args,train_dataset)
+    #my_trainer = Trainer(args,train_dataset)
     
-    my_trainer.train()
+    #my_trainer.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
