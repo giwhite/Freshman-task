@@ -1,6 +1,8 @@
 IMDB/data/
 IMDB/model/
 *.pkl
+*.png
+
 MyjointBert /.vscode/
 MyjointBert/__pycache__/
 MyjointBert/bert-base-uncased/
